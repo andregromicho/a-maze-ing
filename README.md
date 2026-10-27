@@ -4,108 +4,177 @@
 
 ## Description
 
-A-Maze-ing is a Python maze generator. It reads a configuration file, generates
-a maze, displays it in the terminal, and writes its walls and shortest path to
-an output file. The terminal menu can regenerate the maze, show or hide the
-shortest path, change wall colors, and animate the solution.
+A-Maze-ing is a Python maze generator for the 42 curriculum. It reads a
+configuration file, generates a connected maze, finds a shortest route between
+the entry and exit, writes the maze to a file, and displays it in the terminal.
+The project also provides an interactive menu to generate another maze, show or
+hide the solution, change wall colors, and animate the solution.
 
-In an interactive terminal, each maze position uses two character columns to
-compensate for the terminal's taller character cells and keep the maze
-proportions balanced. Walls are filled with bright white against black
-passages by default; the menu cycles through other wall colors, and the 42
-pattern is highlighted in light cyan. When output is redirected, the ASCII
-display uses `#` for walls and spaces for passages. Both displays mark the
-entry and exit with `S` and `E`, the solution path with `*`, and the animated
-position with `@`. For large mazes, use a terminal wide and tall enough to
-show the whole drawing.
+The generator supports perfect mazes and a non-perfect, game-style board. When
+the maze is large enough, it reserves closed cells to draw a visible “42”
+pattern. In an interactive terminal, walls and passages use contrasting
+background colors, the pattern is highlighted, and each maze position uses two
+character columns to improve its proportions. When output is redirected, the
+display uses ASCII characters instead.
 
 ## Instructions
 
-The project requires Python 3.10 or later.
-
-Install the tools used for linting, type checking, and packaging:
-
-```sh
-make install
-```
-
-Run the project with the required subject command:
+Python 3.10 or later is required. From the repository root, run the program
+with one configuration-file argument:
 
 ```sh
 python3 a_maze_ing.py config.txt
 ```
 
-Run linting and type checks with `make lint`; run the tests with `make test`.
-Build the reusable `mazegen` package with `make package`.
+The default configuration file is `config.txt`. To use another configuration,
+pass its path instead:
+
+```sh
+python3 a_maze_ing.py path/to/config.txt
+```
+
+The program generates and displays the maze, writes the result to the configured
+output file, and then presents a menu:
+
+| Choice | Action |
+| --- | --- |
+| `1` | Generate and display a new maze |
+| `2` | Show or hide the shortest path |
+| `3` | Change the wall color |
+| `4` | Animate the solution |
+| `5` | Quit |
+
+Install the project's development and packaging tools with `make install`.
+The Makefile also provides these commands:
+
+| Command | Purpose |
+| --- | --- |
+| `make run` | Run the program using `config.txt` |
+| `make test` | Run the automated tests |
+| `make lint` | Run flake8 and mypy |
+| `make package` | Build the reusable Python package |
+| `make clean` | Remove generated caches and build artifacts |
 
 ## Configuration
 
-The configuration file contains one `KEY=VALUE` pair per line. Empty lines,
-lines starting with `#`, and text after an inline `#` are ignored.
+The configuration is a plain-text file with one `KEY=VALUE` pair per line.
+Keys are case-insensitive. Blank lines, lines starting with `#`, and text
+following `#` on a line are ignored. The following keys are supported:
 
 | Key | Required | Description | Example |
 | --- | --- | --- | --- |
-| `WIDTH` | Yes | Maze width in cells | `WIDTH=50` |
-| `HEIGHT` | Yes | Maze height in cells | `HEIGHT=19` |
-| `ENTRY` | Yes | Entry cell as `x,y` | `ENTRY=0,0` |
-| `EXIT` | Yes | Exit cell as `x,y` | `EXIT=49,18` |
-| `OUTPUT_FILE` | Yes | File where the maze is saved | `OUTPUT_FILE=maze.txt` |
-| `PERFECT` | Yes | `True` for one path; `False` for a playable board | `PERFECT=False` |
-| `SEED` | No | Integer used for reproducible generation | `SEED=42` |
+| `WIDTH` | Yes | Maze width in cells; must be positive | `WIDTH=20` |
+| `HEIGHT` | Yes | Maze height in cells; must be positive | `HEIGHT=15` |
+| `ENTRY` | Yes | Entry coordinates in `x,y` order | `ENTRY=0,0` |
+| `EXIT` | Yes | Exit coordinates in `x,y` order; must differ from the entry | `EXIT=19,14` |
+| `OUTPUT_FILE` | Yes | Path where the generated maze is saved | `OUTPUT_FILE=maze.txt` |
+| `PERFECT` | Yes | Selects perfect or game-style maze generation | `PERFECT=False` |
+| `SEED` | No | Integer seed for reproducible generation | `SEED=42` |
 
-`PERFECT=False` is used by the default configuration. The generator also
-supports `True`, `False`, `1`, and `0` for the `PERFECT` value.
+`PERFECT` accepts `True` or `False` (also `1`/`0`, `yes`/`no`, `y`/`n`, and
+`on`/`off`, in either case). If `SEED` is omitted, generation is not tied to a
+user-specified seed.
 
-## Maze generation
+The repository's default `config.txt` is:
 
-The generator uses iterative depth-first search with backtracking to create a
-connected spanning tree. This provides a perfect maze: there is one path between
-each pair of reachable cells. In non-perfect mode, additional walls are opened
-to create loops and reduce dead ends. The generator avoids opening a 3-by-3
-area and reserves closed cells to draw the “42” pattern when the maze is large
-enough.
+```text
+WIDTH=20
+HEIGHT=15
+ENTRY=0,0
+EXIT=19,14
+OUTPUT_FILE = maze.txt
+PERFECT=False
+```
 
-## Reusable module
+External coordinates use `x,y`, where `x` is the column and `y` is the row.
+The entry and exit must be distinct cells inside the configured maze. Invalid
+configuration values and file errors are reported with an explanatory message.
 
-The `mazegen` package contains the generator, configuration parser, and terminal
-renderer. The built wheel and source archive at the repository root can be
-installed with `pip`. To use the package from Python:
+## Maze generation and solving
+
+The generator uses randomized, iterative depth-first search with
+backtracking. It starts at the entry and opens a wall to an unvisited
+neighbor until all non-pattern cells have been reached. This is a spanning
+tree: in perfect mode (`PERFECT=True`), there is exactly one route between any
+two reachable cells.
+
+In game-style mode (`PERFECT=False`), the generator opens additional walls to
+create loops and reduce dead ends. It avoids openings that would create a
+fully open 3-by-3 area. When dimensions allow, the 42 pattern is placed in
+closed cells without blocking the entry, exit, or required open areas. A
+seeded configuration makes maze generation reproducible.
+
+The shortest route is found with breadth-first search. The displayed solution
+marks its cells with `*`; the entry and exit are marked `S` and `E`, and `@`
+marks the current position during animation. The 42 pattern is shown in light
+cyan in an interactive terminal.
+
+## Output file format
+
+The output file contains:
+
+1. One hexadecimal character per maze cell, with one row per line. The four
+   low-order bits represent walls in `N`, `E`, `S`, `W` order.
+2. A blank line.
+3. The entry coordinates in `x,y` order.
+4. The exit coordinates in `x,y` order.
+5. The shortest route as a sequence of `N`, `E`, `S`, and `W` steps.
+
+For example, the default configuration writes 15 maze rows, followed by the
+entry, exit, and route data.
+
+## Reusable code
+
+The `mazegen` package separates configuration parsing, maze generation and
+solving, and terminal rendering from the command-line entry point. Its
+`Maze` class can be used by other Python code:
 
 ```python
 from mazegen import Maze
 
 maze = Maze("config.txt")
 maze.generate()
-solution = maze.solve_bfs()
-print(maze.grid)
+path = maze.solve_bfs()
+maze.save_to_file()
 ```
 
-`maze.grid` is a two-dimensional list of cells. Each cell has `N`, `E`, `S`,
-and `W` Boolean wall values, plus a `visited` value. Coordinates in the
-configuration and output use `x,y`; internal coordinates use `(row, column)`.
-`solve_bfs()` returns the shortest solution as a list of `(row, column)` cells.
+`solve_bfs()` returns the shortest path as a list of `(row, column)` tuples.
+`maze.grid` stores each cell's north, east, south, and west wall states.
+Coordinates in configuration and output files use `x,y`; internal coordinates
+use `(row, column)`.
 
-## Team and project management
+Build a wheel and source distribution with `make package`. The package
+metadata, including the Python version requirement and dependencies, is in
+`pyproject.toml`.
 
-The project authors, abrandao and goperez-, shared work on the generator,
-configuration, output format, terminal display, and testing.
+## Team and project workflow
 
-The work progressed from configuration parsing and maze generation to solving,
-visualization, output serialization, and validation. The separated generator
-and renderer make the maze logic reusable. More automated tests and additional
-generation algorithms would be useful future improvements.
+The project authors are abrandao and goperez-. The work is credited jointly:
+configuration handling, generation, solving, output serialization, terminal
+visualization, and testing are parts of the same project.
 
-Tools used: Python, Make, flake8, mypy, and the standard-library `unittest`
-module.
+The implementation is organized as a progression from validated configuration
+to maze generation, pathfinding and file output, and finally terminal
+interaction and tests. Keeping the generator and renderer in the `mazegen`
+package makes their responsibilities easier to reuse and validate separately.
+The seeded generation and automated checks help verify reproducibility and
+maze connectivity. Further useful improvements would include broader tests
+across maze dimensions and additional generation algorithms.
+
+Tools used include Python, Make, flake8, mypy, the standard-library `unittest`
+module, and the Python `build` package.
 
 ## Resources
 
 - [Python documentation](https://docs.python.org/3/)
-- [PEP 8](https://peps.python.org/pep-0008/)
-- [PEP 257](https://peps.python.org/pep-0257/)
+- [Python `random` documentation](https://docs.python.org/3/library/random.html)
+- [Python `collections.deque` documentation](https://docs.python.org/3/library/collections.html#collections.deque)
+- [Python `unittest` documentation](https://docs.python.org/3/library/unittest.html)
+- [PEP 8 – Style Guide for Python Code](https://peps.python.org/pep-0008/)
 - [Depth-first search](https://en.wikipedia.org/wiki/Depth-first_search)
 - [Breadth-first search](https://en.wikipedia.org/wiki/Breadth-first_search)
 
-AI assistance was used to review subject compliance, refactor code, identify
-edge cases, and help create tests. The project authors should review and
-understand the implementation before evaluation.
+AI assistance was used to review the project against the subject, improve the
+terminal renderer, identify edge cases, strengthen tests, and edit this
+documentation. The project authors are responsible for reviewing and
+understanding the code and any AI-assisted changes.
