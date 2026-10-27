@@ -1,6 +1,7 @@
 """Tests for configuration, generation, and maze serialization."""
 
 from collections import deque
+import re
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -210,6 +211,37 @@ class MazeTests(unittest.TestCase):
         self.assertIn("E", output.getvalue())
         self.assertNotIn("\033[", output.getvalue())
         self.assertNotIn("██", output.getvalue())
+
+    def test_interactive_renderer_uses_contrasting_wall_and_passage_colors(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            maze = self._create_maze(directory, width=9, height=7)
+            output = self.TerminalOutput()
+            with redirect_stdout(output):
+                maze.drawer.draw_maze(maze.entry)
+                maze.drawer.rotate_color()
+                maze.drawer.draw_maze(maze.entry)
+
+        self.assertIn("\033[107;30m  \033[0m", output.getvalue())
+        self.assertIn("\033[40m  \033[0m", output.getvalue())
+        self.assertIn("\033[103;30m  \033[0m", output.getvalue())
+        self.assertEqual(
+            output.getvalue().count("\033[106;30m. \033[0m"),
+            len(maze.pattern_42_cells) * 2,
+        )
+
+        frame = output.getvalue().split("\033[2J\033[H")[-1]
+        visible_lines = [
+            re.sub(r"\033\[[0-9;]*m", "", line)
+            for line in frame.splitlines()
+        ]
+        self.assertTrue(
+            all(
+                len(line) == (maze.width * 2 + 1) * 2
+                for line in visible_lines
+            )
+        )
 
     def test_animation_clears_terminal_before_each_frame(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -9,10 +9,15 @@ a maze, displays it in the terminal, and writes its walls and shortest path to
 an output file. The terminal menu can regenerate the maze, show or hide the
 shortest path, change wall colors, and animate the solution.
 
-The terminal display uses `#` for walls, spaces for passages, `S` and `E` for
-the entry and exit, `*` for the solution path, and `@` for the animated
-position. For large mazes, use a terminal wide and tall enough to show the
-whole drawing.
+In an interactive terminal, each maze position uses two character columns to
+compensate for the terminal's taller character cells and keep the maze
+proportions balanced. Walls are filled with bright white against black
+passages by default; the menu cycles through other wall colors, and the 42
+pattern is highlighted in light cyan. When output is redirected, the ASCII
+display uses `#` for walls and spaces for passages. Both displays mark the
+entry and exit with `S` and `E`, the solution path with `*`, and the animated
+position with `@`. For large mazes, use a terminal wide and tall enough to
+show the whole drawing.
 
 ## Instructions
 

@@ -21,13 +21,15 @@ class DrawMaze:
 
     _color_index: int
     COLORS = [
-        "\033[97m",
-        "\033[93m",
-        "\033[92m",
-        "\033[96m",
-        "\033[94m",
-        "\033[91m",
+        "\033[107;30m",
+        "\033[103;30m",
+        "\033[102;30m",
+        "\033[106;30m",
+        "\033[104;30m",
+        "\033[101;30m",
     ]
+    PASSAGE_COLOR = "\033[40m"
+    PATTERN_COLOR = "\033[106;30m"
     RESET = "\033[0m"
 
     def rotate_color(self) -> None:
@@ -106,11 +108,15 @@ class DrawMaze:
         for line in render:
             if interactive:
                 output = "".join(
-                    f"{wall_color}#{self.RESET}"
+                    f"{wall_color}  {self.RESET}"
                     if char == "#"
-                    else f"{cell_colors[char]}{char}{self.RESET}"
+                    else f"{self.PASSAGE_COLOR}  {self.RESET}"
+                    if char == " "
+                    else f"{self.PATTERN_COLOR}{char} {self.RESET}"
+                    if char == "."
+                    else f"{cell_colors[char]}{char} {self.RESET}"
                     if char in cell_colors
-                    else char
+                    else f"{char} "
                     for char in line
                 )
             else:
